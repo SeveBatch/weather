@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather
+spec:
+  replicas: 1 # POC count, production should consider auto scaling
+  selector:
+    matchLabels:
+      app: weather
+  template:
+    metadata:
+      labels:
+        app: weather
+    spec:
+      containers:
+        - name: weather
+          image: weather:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather
+spec:
+  selector:
+    app: weather
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: NodePort
