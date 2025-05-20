@@ -15,7 +15,12 @@ spec:
       containers:
         - name: weather
           image: weather:latest
-          imagePullPolicy: Always
+          imagePullPolicy: Never # local
+
+          # if we wanted to use gh registry
+          # image: ghcr.io/sevebatch/weather:latest
+          # imagePullPolicy: Always # local
+
           ports:
             - containerPort: 5000
 ---

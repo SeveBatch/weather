@@ -74,13 +74,13 @@ func main() {
 		handler(w, r)
 	})
 
-	//TODO change back to 5000
 	log.Println("Server starting on port 5000...")
 	log.Fatal(http.ListenAndServe(":5000", nil))
 }
 
 // FetchForecast fetches the forecast for a given set of coordinates
 func FetchForecast(url string) (*Forecast, error) {
+	log.Printf("Fetching forecast from weather.gov")
 	var forecast Forecast
 	body, err := fetchUrl(url)
 	if err != nil {
