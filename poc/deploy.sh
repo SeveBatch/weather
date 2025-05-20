@@ -1,5 +1,8 @@
 #!/bin/bash
+# This could be used for unique versioning  and tagging
 # version=$(git rev-parse --short HEAD)
+
+kubectl apply -f deployment.ym
 
 #build new version
 docker build -t weather:latest .
