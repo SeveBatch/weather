@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+// TODO: Update code for high load and concurrency by using a pool or queue of available
+// connections or go channels or routines to handle multiple requests
+
+// Handle request to "/"
 func handler(w http.ResponseWriter, r *http.Request) {
 	url := "https://locations.patch3s.dev/api/random"
 	random, err := fetchLocations(url)
@@ -26,8 +30,32 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	baseCoordUrl := "https://api.weather.gov/points/"
 
-	fmt.Println("main.go@18 waldo: forecast", forecast)
+	// Single forecast object used but could be updated to a slice of forecasts
+	// to support multiple locations
+	var forecast *Forecast
+	// Parse locations for coordinates
+	for _, f := range random.Locations {
+		coords := baseCoordUrl + fmt.Sprintf("%f,%f", f.Lat, f.Lon)
+		forecast, err = FetchForecast(coords)
+		if err != nil {
+			errMess := "Forecast unavailable"
+			http.Error(w, errMess, http.StatusInternalServerError)
+		}
+	}
+
+	// Successfully fetched and generated forecast
+	if forecast != nil {
+		jsonResponse := []byte(forecast.Detailed)
+		if err != nil {
+			http.Error(w, "Error generating response", http.StatusInternalServerError)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonResponse)
+	}
 }
 
 func main() {
@@ -40,16 +68,44 @@ func main() {
 		}
 		handler(w, r)
 	})
+
+	//TODO change back to 5000
+	log.Println("Server starting on port 5001...")
+	log.Fatal(http.ListenAndServe(":5001", nil))
 }
 
-func fetchForecast(url string) (map[string]interface{}, error) {
-	resp, err := http.Get(url)
+// FetchForecast fetches the forecast for a given set of coordinates
+func FetchForecast(url string) (*Forecast, error) {
+	var forecast Forecast
+	body, err := fetchUrl(url)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &forecast)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err = fetchUrl(forecast.Properties.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	var points Points
+	err = json.Unmarshal(body, &points)
+	if err != nil {
+		return nil, err
+	}
+
+	// The first period represents the current forecast
+	// TODO: This could be extended to support other time frames returned from weather.gov
+	forecast.Detailed = points.Properties.Periods[0].Detailed
+	forecast.Short = points.Properties.Periods[0].Short
+
+	return &forecast, nil
+}
+
 // fetchLocations fetches a random location from the 3rd party API
 func fetchLocations(url string) (*Random, error) {
 	body, err := fetchUrl(url)
@@ -83,6 +139,27 @@ func fetchUrl(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// Models
+// Forecast represents the forecast data for a locations forecasts
+type Forecast struct {
+	Detailed   string
+	Name       string
+	Properties struct {
+		Url string `json:"forecast"`
+	} `json:"properties"`
+	Short string
+}
+
+// Points represents the response from weather.gov
+type Points struct {
+	Properties struct {
+		Periods []struct {
+			Detailed string `json:"detailedForecast"`
+			Short    string `json:"shortForecast"`
+		} `json:"periods"`
+	} `json:"properties"`
 }
 
 // Random represents the response from 3rd party /random
