@@ -38,6 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// Parse locations for coordinates
 	for _, f := range random.Locations {
 		coords := baseCoordUrl + fmt.Sprintf("%f,%f", f.Lat, f.Lon)
+		log.Printf("Constructing coordinates URL: %s", coords)
 		forecast, err = FetchForecast(coords)
 		if err != nil {
 			errMess := "Forecast unavailable"
@@ -47,6 +48,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	// Successfully fetched and generated forecast
 	if forecast != nil {
+		forecast.Name = random.Locations[0].Name
+		log.Printf("Writing response for %s", forecast.Name)
 		jsonResponse := []byte(forecast.Detailed)
 		if err != nil {
 			http.Error(w, "Error generating response", http.StatusInternalServerError)
@@ -82,6 +85,7 @@ func FetchForecast(url string) (*Forecast, error) {
 		return nil, err
 	}
 
+	log.Printf("Unmarshalling forecast url from weather.gov")
 	err = json.Unmarshal(body, &forecast)
 	if err != nil {
 		return nil, err
@@ -93,6 +97,7 @@ func FetchForecast(url string) (*Forecast, error) {
 	}
 
 	var points Points
+	log.Printf("Unmarshalling forecast points data from weather.gov")
 	err = json.Unmarshal(body, &points)
 	if err != nil {
 		return nil, err
@@ -108,6 +113,7 @@ func FetchForecast(url string) (*Forecast, error) {
 
 // fetchLocations fetches a random location from the 3rd party API
 func fetchLocations(url string) (*Random, error) {
+	log.Printf("Fetching Locations from patch3s.dev")
 	body, err := fetchUrl(url)
 	if err != nil {
 		return nil, err
@@ -124,6 +130,7 @@ func fetchLocations(url string) (*Random, error) {
 
 // fetchUrl Helper function to make requests to 3rd party APIs
 func fetchUrl(url string) ([]byte, error) {
+	log.Printf("Fetching URL: %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
