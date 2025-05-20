@@ -11,6 +11,8 @@ import (
 // TODO: Update code for high load and concurrency by using a pool or queue of available
 // connections or go channels or routines to handle multiple requests
 
+// TODO: Logging could be updated to be more granular based off the log level and environment
+
 // Handle request to "/"
 func handler(w http.ResponseWriter, r *http.Request) {
 	url := "https://locations.patch3s.dev/api/random"
@@ -73,8 +75,8 @@ func main() {
 	})
 
 	//TODO change back to 5000
-	log.Println("Server starting on port 5001...")
-	log.Fatal(http.ListenAndServe(":5001", nil))
+	log.Println("Server starting on port 5000...")
+	log.Fatal(http.ListenAndServe(":5000", nil))
 }
 
 // FetchForecast fetches the forecast for a given set of coordinates
